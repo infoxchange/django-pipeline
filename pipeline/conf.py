@@ -11,8 +11,6 @@ DEFAULTS = {
     'PIPELINE_ROOT': _settings.STATIC_ROOT,
     'PIPELINE_URL': _settings.STATIC_URL,
 
-    'PIPELINE_STORAGE': 'pipeline.storage.PipelineFinderStorage',
-
     'PIPELINE_CSS_COMPRESSOR': 'pipeline.compressors.yuglify.YuglifyCompressor',
     'PIPELINE_JS_COMPRESSOR': 'pipeline.compressors.yuglify.YuglifyCompressor',
     'PIPELINE_COMPILERS': [],
@@ -50,11 +48,14 @@ DEFAULTS = {
     'PIPELINE_COFFEE_SCRIPT_BINARY': '/usr/bin/env coffee',
     'PIPELINE_COFFEE_SCRIPT_ARGUMENTS': '',
 
+    'PIPELINE_BABEL_BINARY': '/usr/bin/env babel',
+    'PIPELINE_BABEL_ARGUMENTS': '',
+
     'PIPELINE_LIVE_SCRIPT_BINARY': '/usr/bin/env lsc',
     'PIPELINE_LIVE_SCRIPT_ARGUMENTS': '',
 
     'PIPELINE_SASS_BINARY': '/usr/bin/env sass',
-    'PIPELINE_SASS_ARGUMENTS': '--update',
+    'PIPELINE_SASS_ARGUMENTS': '',
 
     'PIPELINE_STYLUS_BINARY': '/usr/bin/env stylus',
     'PIPELINE_STYLUS_ARGUMENTS': '',
@@ -68,7 +69,7 @@ DEFAULTS = {
     'PIPELINE_MIMETYPES': (
         (b'text/coffeescript', '.coffee'),
         (b'text/less', '.less'),
-        (b'application/javascript', '.js'),
+        (b'text/javascript', '.js'),
         (b'text/x-sass', '.sass'),
         (b'text/x-scss', '.scss'),
         (b'text/x-handlebars-template', '*.handlebars'),

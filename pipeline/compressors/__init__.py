@@ -7,16 +7,16 @@ import re
 
 from itertools import takewhile
 
+from django.contrib.staticfiles.storage import staticfiles_storage
 from django.utils.encoding import smart_bytes, force_text
 
 from pipeline.conf import settings
-from pipeline.storage import default_storage
 from pipeline.utils import to_class, relpath
 from pipeline.exceptions import CompressorError
 
-URL_DETECTOR = r'url\([\'"]?([^\s)]+\.[a-z]+[^\'"\s]*)[\'"]?\)'
-URL_REPLACER = r'url\(__EMBED__(.+?)(\?\d+)?\)'
-NON_REWRITABLE_URL = re.compile(r'^(http:|https:|data:|//)')
+URL_DETECTOR = r"""url\((['"]){0,1}\s*(.*?)["']{0,1}\)"""
+URL_REPLACER = r"""url\(__EMBED__(.+?)(\?\d+)?\)"""
+NON_REWRITABLE_URL = re.compile(r'^(#|http:|https:|data:|//)')
 
 DEFAULT_TEMPLATE_FUNC = "template"
 TEMPLATE_FUNC = r"""var template = function(str){var fn = new Function('obj', 'var __p=[],print=function(){__p.push.apply(__p,arguments);};with(obj||{}){__p.push(\''+str.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/<%=([\s\S]+?)%>/g,function(match,code){return "',"+code.replace(/\\'/g, "'")+",'";}).replace(/<%([\s\S]+?)%>/g,function(match,code){return "');"+code.replace(/\\'/g, "'").replace(/[\r\n\t]/g,' ')+"__p.push('";}).replace(/\r/g,'\\r').replace(/\n/g,'\\n').replace(/\t/g,'\\t')+"');}return __p.join('');");return fn;};"""
@@ -39,7 +39,9 @@ FONT_EXTS = ['.ttf', '.otf', '.woff']
 class Compressor(object):
     asset_contents = {}
 
-    def __init__(self, storage=default_storage, verbose=False):
+    def __init__(self, storage=None, verbose=False):
+        if storage is None:
+            storage = staticfiles_storage
         self.storage = storage
         self.verbose = verbose
 
@@ -125,9 +127,10 @@ class Compressor(object):
         stylesheets = []
         for path in paths:
             def reconstruct(match):
-                asset_path = match.group(1)
+                quote = match.group(1) or ''
+                asset_path = match.group(2)
                 if NON_REWRITABLE_URL.match(asset_path):
-                    return "url(%s)" % asset_path
+                    return "url(%s%s%s)" % (quote, asset_path, quote)
                 asset_url = self.construct_asset_path(asset_path, path,
                                                       output_filename, variant)
                 return "url(%s)" % asset_url
@@ -158,7 +161,7 @@ class Compressor(object):
             return False
         if not (re.search(settings.PIPELINE_EMBED_PATH, path.replace('\\', '/')) and self.storage.exists(path)):
             return False
-        if not ext in EMBED_EXTS:
+        if ext not in EMBED_EXTS:
             return False
         if not (font or len(self.encoded_content(path)) < settings.PIPELINE_EMBED_MAX_IMAGE_SIZE):
             return False
@@ -191,7 +194,7 @@ class Compressor(object):
         given the path of the stylesheet that contains it.
         """
         if posixpath.isabs(path):
-            path = posixpath.join(default_storage.location, path)
+            path = posixpath.join(staticfiles_storage.location, path)
         else:
             path = posixpath.join(start, path)
         return posixpath.normpath(path)
@@ -204,7 +207,7 @@ class Compressor(object):
 
     def read_bytes(self, path):
         """Read file content in binary mode"""
-        file = default_storage.open(path)
+        file = staticfiles_storage.open(path)
         content = file.read()
         file.close()
         return content

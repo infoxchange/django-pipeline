@@ -8,17 +8,19 @@ except ImportError:
     from pipes import quote
 
 from django.contrib.staticfiles import finders
+from django.contrib.staticfiles.storage import staticfiles_storage
 from django.core.files.base import ContentFile
 from django.utils.encoding import smart_str, smart_bytes
 
 from pipeline.conf import settings
 from pipeline.exceptions import CompilerError
-from pipeline.storage import default_storage
 from pipeline.utils import to_class
 
 
 class Compiler(object):
-    def __init__(self, storage=default_storage, verbose=False):
+    def __init__(self, storage=None, verbose=False):
+        if storage is None:
+            storage = staticfiles_storage
         self.storage = storage
         self.verbose = verbose
 
@@ -32,15 +34,14 @@ class Compiler(object):
                 compiler = compiler(verbose=self.verbose, storage=self.storage)
                 if compiler.match_file(input_path):
                     output_path = self.output_path(input_path, compiler.output_extension)
-                    infile = finders.find(input_path)
+                    try:
+                        infile = self.storage.path(input_path)
+                    except NotImplementedError:
+                        infile = finders.find(input_path)
                     outfile = self.output_path(infile, compiler.output_extension)
                     outdated = compiler.is_outdated(input_path, output_path)
-                    try:
-                        compiler.compile_file(quote(infile), quote(outfile),
-                            outdated=outdated, force=force)
-                    except CompilerError:
-                        if not self.storage.exists(output_path) or settings.DEBUG:
-                            raise
+                    compiler.compile_file(quote(infile), quote(outfile),
+                        outdated=outdated, force=force)
                     return output_path
             else:
                 return input_path
@@ -99,4 +100,6 @@ class SubProcessCompiler(CompilerBase):
             raise CompilerError(stderr)
         if self.verbose:
             print(stderr)
+        if pipe.returncode != 0:
+            raise CompilerError("Command '{0}' returned non-zero exit status {1}".format(command, pipe.returncode))
         return stdout

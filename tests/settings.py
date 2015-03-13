@@ -1,5 +1,8 @@
 import os
-local_path = lambda path: os.path.join(os.path.dirname(__file__), path)
+
+
+def local_path(path):
+    return os.path.join(os.path.dirname(__file__), path)
 
 DATABASES = {
     'default': {
@@ -7,6 +10,8 @@ DATABASES = {
         'TEST_NAME': ':memory:'
     }
 }
+
+DEBUG = False
 
 SITE_ID = 1
 
@@ -18,11 +23,20 @@ INSTALLED_APPS = [
     'django.contrib.auth',
     'django.contrib.admin',
     'pipeline',
-    'tests',
     'tests.tests'
 ]
 
+MIDDLEWARE_CLASSES = (
+    'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.contrib.auth.middleware.AuthenticationMiddleware'
+)
+
 ROOT_URLCONF = 'tests.urls'
+
+MIDDLEWARE_CLASSES = (
+    'django.middleware.common.CommonMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware'
+)
 
 MEDIA_URL = '/media/'
 
@@ -33,11 +47,11 @@ STATIC_ROOT = local_path('static/')
 STATIC_URL = '/static/'
 STATICFILES_DIRS = (
     ('pipeline', local_path('assets/')),
-    local_path('assets2/'),
 )
 STATICFILES_FINDERS = (
     'django.contrib.staticfiles.finders.FileSystemFinder',
-    'django.contrib.staticfiles.finders.AppDirectoriesFinder'
+    'django.contrib.staticfiles.finders.AppDirectoriesFinder',
+    'pipeline.finders.PipelineFinder',
 )
 
 SECRET_KEY = "django-pipeline"
